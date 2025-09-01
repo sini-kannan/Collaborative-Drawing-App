@@ -12,12 +12,12 @@ A real-time collaborative drawing application built with React, Node.js, Socket.
 
 ## Prerequisites
 
-- Docker and Docker Compose
-- Node.js (for local development without Docker)
+- Node.js 18+ (recommended)
+- Docker and Docker Compose (optional)
 
 ## Getting Started
 
-### With Docker (Recommended)
+### With Docker (Optional)
 
 1. Clone the repository:
    ```bash
@@ -30,14 +30,11 @@ A real-time collaborative drawing application built with React, Node.js, Socket.
    docker-compose up --build
    ```
 
-3. Open your browser and navigate to:
-   ```
-   http://localhost
-   ```
+3. Open your browser: http://localhost
 
 ### Without Docker
 
-#### Backend Setup
+#### Backend Setup (Local)
 
 1. Navigate to the backend directory:
    ```bash
@@ -54,7 +51,7 @@ A real-time collaborative drawing application built with React, Node.js, Socket.
    npm start
    ```
 
-#### Frontend Setup
+#### Frontend Setup (Local)
 
 1. In a new terminal, navigate to the frontend directory:
    ```bash
@@ -80,11 +77,26 @@ A real-time collaborative drawing application built with React, Node.js, Socket.
 
 ### Environment Variables
 
-Create a `.env` file in the backend directory with the following variables:
+Backend (`backend/.env` or provider env settings):
 
 ```
-NODE_ENV=development
-REDIS_URL=redis://localhost:6379
+# CORS allow-list (comma-separated). Must include your frontend URL.
+FRONTEND_ORIGINS=https://live-canvas.netlify.app, http://localhost:3000
+
+# Optional services
+# MONGODB_URI=mongodb+srv://...
+# MONGODB_DB=drawing_app
+# REDIS_URL=redis://localhost:6379
+
+# Port (Render sets this automatically)
+# PORT=5000
+```
+
+Frontend (Netlify Site settings → Environment variables):
+
+```
+# Backend public URL (used by Socket.IO client and REST calls)
+REACT_APP_SOCKET_URL=https://<your-backend>.onrender.com
 ```
 
 ### Available Scripts
@@ -103,36 +115,64 @@ REDIS_URL=redis://localhost:6379
 
 ## Deployment
 
-### Docker
+### Frontend → Netlify
 
-Build and push the Docker images:
+We include `frontend/netlify.toml` for SPA routing. Deploy either via UI or CLI.
 
-```bash
-docker-compose build
-docker-compose push
-```
+- Netlify UI:
+  - New site from Git → pick your repo
+  - Base directory: `collaborative-drawing-app/frontend`
+  - Build command: `npm run build`
+  - Publish directory: `build`
+  - Add env var: `REACT_APP_SOCKET_URL = https://<your-backend>.onrender.com`
 
-### Cloud Platforms
+- Netlify CLI (from `collaborative-drawing-app/frontend/`):
+  ```bash
+  npm i -g netlify-cli
+  netlify login
+  netlify init                    # create site
+  netlify env:set REACT_APP_SOCKET_URL https://<your-backend>.onrender.com
+  netlify deploy --prod           # builds and deploys
+  ```
 
-#### Heroku
+### Backend → Render
 
-1. Install the Heroku CLI
-2. Login to Heroku:
-   ```bash
-   heroku login
-   ```
-3. Create a new Heroku app:
-   ```bash
-   heroku create
-   ```
-4. Add Redis addon:
-   ```bash
-   heroku addons:create heroku-redis:hobby-dev
-   ```
-5. Deploy:
-   ```bash
-   git push heroku main
-   ```
+We provide a Render Blueprint: `render.yaml` at repo root (`collaborative-drawing-app/render.yaml`).
+
+Option A: Blueprint
+- Push repo to GitHub.
+- Render → New → Blueprint → select your repo.
+- Confirm service (auto-detected):
+  - Type: Web, Root: `backend`, Build: `npm install`, Start: `node server.js`, Health: `/health`
+  - Env var: `FRONTEND_ORIGINS = https://<your-netlify>.netlify.app, http://localhost:3000`
+- Create. After deploy, copy the public URL, e.g. `https://<service>.onrender.com`.
+
+Option B: Manual Web Service
+- Render → New → Web Service → connect repo.
+- Root directory: `collaborative-drawing-app/backend/`
+- Build: `npm install`
+- Start: `node server.js`
+- Health check path: `/health`
+- Env vars: `FRONTEND_ORIGINS = https://<your-netlify>.netlify.app, http://localhost:3000`
+
+### Wire frontend ↔ backend
+1. In Render, ensure `FRONTEND_ORIGINS` includes your Netlify URL exactly (https and domain).
+2. In Netlify, set `REACT_APP_SOCKET_URL` to the Render backend URL.
+3. Redeploy the frontend.
+
+### Verify
+- Backend health: `https://<your-backend>.onrender.com/health` → `{ ok: true }`
+- Open app: `https://<your-netlify>.netlify.app/?room=alpha`
+- Draw from two browsers; verify real-time sync. Try Save/Load snapshot.
+
+### Troubleshooting
+- CORS blocked:
+  - Ensure Render `FRONTEND_ORIGINS` matches your Netlify URL exactly.
+  - Our server also allows `http://localhost:3000` by default for local dev.
+- Frontend can’t connect to Socket:
+  - Check Netlify `REACT_APP_SOCKET_URL` and redeploy.
+- 404 on refresh/deep-link:
+  - `frontend/netlify.toml` includes SPA redirect; ensure it’s present.
 
 ## License
 
