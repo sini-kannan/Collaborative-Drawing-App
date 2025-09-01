@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: live-canvas-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: FRONTEND_ORIGINS
+        # Comma-separated list of allowed frontend origins for CORS and Socket.IO
+        value: https://live-canvas.netlify.app, http://localhost:3000
+      # Optional persistence backends. Remove if unused.
+      # - key: MONGODB_URI
+      #   sync: false
+      # - key: MONGODB_DB
+      #   value: drawing_app
+      # - key: REDIS_URL
+      #   sync: false

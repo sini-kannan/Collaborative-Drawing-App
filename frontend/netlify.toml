@@ -1,0 +1,13 @@
+[build]
+  command = "npm run build"
+  publish = "build"
+
+[build.environment]
+  # IMPORTANT: Set REACT_APP_SOCKET_URL in Netlify UI to your backend URL (e.g., https://your-backend.onrender.com)
+  # Do not hardcode it here to avoid leaking local URLs into production.
+
+# Single Page App fallback
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
